@@ -145,7 +145,7 @@ def searchlight_hyperalignment(
 
 
 def searchlight_procrustes(
-    X, Y, sls, sls_Y=None, mat0=None, reflection=True, scaling=False, weights=None
+    X, Y, sls, sls_Y=None, mat0=None, reflection=True, scaling=False, weights=None, **kwargs
 ):
     """
     Searchlight hyperalignment using orthogonal Procrustes.
@@ -182,12 +182,12 @@ def searchlight_procrustes(
     """
     sl_func = functools.partial(procrustes, reflection=reflection, scaling=scaling)
     xfm = searchlight_hyperalignment(
-        X, Y, sls, sls_Y=sls_Y, sl_func=sl_func, mat0=mat0, weights=weights
+        X, Y, sls, sls_Y=sls_Y, sl_func=sl_func, mat0=mat0, weights=weights,**kwargs
     )
     return xfm
 
 
-def searchlight_ridge(X, Y, sls, sls_Y=None, mat0=None, alpha=1e3, weights=None):
+def searchlight_ridge(X, Y, sls, sls_Y=None, mat0=None, alpha=1e3, weights=None, **kwargs):
     """
     Searchlight hyperalignment using ridge regression.
 
