@@ -17,23 +17,23 @@ if __name__ == "__main__":
     parser.add_argument("--load-json", type=str, default=None,
                        help="Load configuration from JSON file (overrides other arguments)")
     parser.add_argument("--dataset",help="datasets in neuroboros or defined in your io function") #choices=["HBN_full","HBN_sample","Budapest","Raiders"]
-    parser.add_argument("--outroot", default='.', help="Root output directory")  
-    parser.add_argument("--extra_str", default='', help="Some memo to tell me the settings I changed")  
+    parser.add_argument("--outroot", default='.', help="Root output directory")
+    parser.add_argument("--extra_str", default='', help="Some memo to tell me the settings I changed")
     parser.add_argument("--seeds", default="onavg-ico32",help="the searchlight/rois to align")
     parser.add_argument("--targets",nargs="+",default="response",
                         help="target to calculate connectivity, for cortical it is searchlight means and for subcortical it is roi means") # , choices=["None","response","cortical-lr", "subcortical-lr","cortical-subcortical-lr"]
     parser.add_argument("--task")
     parser.add_argument("--run", type=parse_range, nargs="+", default=[1])
-    parser.add_argument("--subj", type=parse_range, nargs="+", default=[10,11,12])     
-    parser.add_argument("--template_dir", default="",help="Path to the template directory")  
+    parser.add_argument("--subj", type=parse_range, nargs="+", default=[10,11,12])
+    parser.add_argument("--template_dir", default="",help="Path to the template directory")
     parser.add_argument("--surface_space",default='onavg-ico32')
     parser.add_argument("--volume_space",default='mni-2mm')
     parser.add_argument("--surface_resample",default="1step_pial_overlap")
     parser.add_argument("--volume_resample",default="1step_linear_overlap")
     parser.add_argument("--prep", default="default",help = "Nuissance regression method, default includes no censoring of frames and scrub used the saved mask for censoring") # choices=["default", "scrub","default-gsr", "scrub-gsr"]
     parser.add_argument("--zscore_axis",default="searchlight",choices=["searchlight","fullmatrix"],help="Possibilities to zscore connectivity in stage = template or align]")
-    parser.add_argument("--saved_beta_root", default="/dartfs/rc/lab/H/HaxbyLab/datasets/",help="Path to the saved betas, set to "" if not available")  
-    parser.add_argument("--dry-run", action="store_true", default=False, 
+    parser.add_argument("--saved_beta_root", default="/dartfs/rc/lab/H/HaxbyLab/datasets/",help="Path to the saved betas, set to "" if not available")
+    parser.add_argument("--dry-run", action="store_true", default=False,
                        help="Only save configuration JSON without running the main pipeline")
     # Parse CLI arguments first
     cli_args = parser.parse_args()
@@ -42,13 +42,13 @@ if __name__ == "__main__":
     if cli_args.load_json:
         if not os.path.exists(cli_args.load_json):
             parser.error(f"JSON file not found: {cli_args.load_json}")
-        
+
         print(f"Loading configuration from: {cli_args.load_json}")
         json_args = load_args_from_json(cli_args.load_json)
-        
+
         # Merge JSON args with CLI args (CLI takes precedence for specific fields)
         merged_args = merge_args(json_args, cli_args)
-        
+
         # Create a new Namespace object with merged arguments
         args = argparse.Namespace(**merged_args)
     else:
@@ -65,13 +65,13 @@ if __name__ == "__main__":
         args.outdir = os.path.join(args.outroot,args.dataset,f'{args.surface_space}_{args.surface_resample}',args.extra_str,'connectivity_reliability')
     else:
         args.outdir = os.path.join(args.outroot,args.dataset,f'{args.volume_space}_{args.volume_resample}',args.extra_str,'connectivity_reliability')
-    
+
     config_path = save_args_to_json(args)
     if args.dry_run:
         print("DRY RUN: Configuration saved. Exiting without running pipeline.")
         print(f"Config file: {config_path}")
         sys.exit(0)
-    
+
     dataset= args.dataset #'Budapest'
     prep = args.prep
 
@@ -81,14 +81,14 @@ if __name__ == "__main__":
         zscore_ax = None
     else:
         raise ValueError("Unsupported zscore_axis")
-    
-    os.makedirs(args.outdir, exist_ok=True)    
+
+    os.makedirs(args.outdir, exist_ok=True)
 
     kwargs = { # for older datasets, there might be multiple versions/folders
     'space': [args.surface_space, args.volume_space],
     'resample': [args.surface_resample,args.volume_resample],
     'prep':args.prep
-    }   
+    }
     if args.dataset.lower() in ["budapest", "raiders"]:
         dset=nb.datasets.datasets[args.dataset.lower()](fp_version="20.2.7",**kwargs)
     elif args.dataset.lower() in nb.datasets.datasets.keys():
@@ -106,7 +106,7 @@ if __name__ == "__main__":
             calpha = cronbach_alpha(dm_allruns,rep_axis=0,var_axis=1)
             save_cfn = f"{args.outdir}/{sid}_CronbachAlpha_run{''.join(map(str,args.run))}_reliability_seeds-{args.seeds}_targets-{target}.npy"
             np.save(save_cfn,calpha)
-    
+
     # for sid in sids:
     #     calc_reliability_single_subj(dset,sid, args.targets,args.seeds,args.task,args.run,args.outdir,args.saved_beta_path)
     # # parallelize for subject

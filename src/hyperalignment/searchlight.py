@@ -136,7 +136,7 @@ def searchlight_hyperalignment(
             )
         if weights is not None:
             for t, w, sl in zip(local_xfms, weights, sls):
-                mat[np.ix_(sl_X, sl_Y)] += t * w[np.newaxis] 
+                mat[np.ix_(sl_X, sl_Y)] += t * w[np.newaxis]
         else:
             warnings.warn('Legacy, do not use this, use searchlight_weights(dists=None) to get uniform weights as input to this function instead')
             for t, sl in zip(local_xfms, sls):

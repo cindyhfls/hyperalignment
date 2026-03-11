@@ -2,7 +2,7 @@
 # coding: utf-8
 '''
 Script to call for finding the transformation to template using either ridge regression (warp) or generalized procrustes.
-To-do: 
+To-do:
  - add back the searchlight hyperalignment for cortical
  - need to add compatibility/switch to new template naming
  - need to add support when the template is made from multiple targets. Is it the same as concatenating the different templates if the data matrices were zscored separately?
@@ -26,8 +26,8 @@ if __name__ == "__main__":
     parser.add_argument("--load-json", type=str, default=None,
                        help="Load configuration from JSON file (overrides other arguments)")
     parser.add_argument("--dataset",help="datasets in neuroboros or defined in your io function") #choices=["HBN_full","HBN_sample","Budapest","Raiders"]
-    parser.add_argument("--outroot", default = '.', help="Root output directory")  
-    parser.add_argument("--extra_str", default = '', help="Some memo to tell me the settings I changed")  
+    parser.add_argument("--outroot", default = '.', help="Root output directory")
+    parser.add_argument("--extra_str", default = '', help="Some memo to tell me the settings I changed")
     parser.add_argument("--seeds", default="onavg-ico32",help="the searchlight/rois to align")
     parser.add_argument("--targets",nargs="+",default="response",
                         help="target to calculate connectivity, for cortical it is searchlight means and for subcortical it is roi means") # , choices=["None","response","cortical-lr", "subcortical-lr","cortical-subcortical-lr"]
@@ -35,9 +35,9 @@ if __name__ == "__main__":
     parser.add_argument("--alignfunc", choices=["ridge", "procr","","ridgeCV"], default="")
     parser.add_argument("--ridge_alpha",nargs = "+", default = 1e3, type=float, help = "Regularization strength, used only if the args.align is ridge or ridgeCV")
     parser.add_argument("--run", type=parse_range, default=[1])
-    parser.add_argument("--subj", type=parse_range, default=[10,11,12])     
-    parser.add_argument("--template_dir", default="",help="Path to the template directory")  
-    parser.add_argument("--transform_dir", default="",help="Path to the transforms directory")  
+    parser.add_argument("--subj", type=parse_range, default=[10,11,12])
+    parser.add_argument("--template_dir", default="",help="Path to the template directory")
+    parser.add_argument("--transform_dir", default="",help="Path to the transforms directory")
     parser.add_argument("--searchlight_radius",default = 20, type=float, help = "Cortical search lights, think of them as approximately ROIs")
     parser.add_argument("--searchlight_center",default = 'onavg-ico32', help = "Will determine the number of searchlights")
     parser.add_argument("--notweighted",action="store_true",default=False, help = "Whether we do distance based weighting to combine searchlights (stage='template' or 'align')")
@@ -49,10 +49,10 @@ if __name__ == "__main__":
     parser.add_argument("--prep", default="default",help = "Nuissance regression method, default includes no censoring of frames and scrub used the saved mask for censoring") # choices=["default", "scrub","default-gsr", "scrub-gsr"]
     parser.add_argument("--zscore_axis",default="searchlight",choices=["searchlight","fullmatrix"],help="Possibilities to zscore connectivity in stage = template or align]")
     parser.add_argument("--separate_zscore",default=True,help="Separately zscore cortical and subcortical connectivity, only meaningful if the target is cortical-subcortical-lr")
-    parser.add_argument("--saved_beta_root", default="/dartfs/rc/lab/H/HaxbyLab/datasets/",help="Path to the saved betas, set to "" if not available")  
-    parser.add_argument("--dry-run", action="store_true", default=False, 
+    parser.add_argument("--saved_beta_root", default="/dartfs/rc/lab/H/HaxbyLab/datasets/",help="Path to the saved betas, set to "" if not available")
+    parser.add_argument("--dry-run", action="store_true", default=False,
                        help="Only save configuration JSON without running the main pipeline")
-    
+
     # Parse CLI arguments first
     cli_args = parser.parse_args()
 
@@ -60,13 +60,13 @@ if __name__ == "__main__":
     if cli_args.load_json:
         if not os.path.exists(cli_args.load_json):
             parser.error(f"JSON file not found: {cli_args.load_json}")
-        
+
         print(f"Loading configuration from: {cli_args.load_json}")
         json_args = load_args_from_json(cli_args.load_json)
-        
+
         # Merge JSON args with CLI args (CLI takes precedence for specific fields)
         merged_args = merge_args(json_args, cli_args)
-        
+
         # Create a new Namespace object with merged arguments
         args = argparse.Namespace(**merged_args)
     else:
@@ -85,7 +85,7 @@ if __name__ == "__main__":
             args.outdir = os.path.join(args.outroot,args.dataset,f'{args.surface_space}_{args.surface_resample}',args.extra_str,'transformation_to_template')
         else:
             args.outdir = os.path.join(args.outroot,args.dataset,f'{args.volume_space}_{args.volume_resample}',args.extra_str,'transformation_to_template')
-    
+
     if not('template_dir' in args and os.path.exists(args.template_dir)):
         if seedspace == args.surface_space:
             args.template_dir = os.path.join(args.outroot,args.dataset,f'{args.surface_space}_{args.surface_resample}','templates')
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     'space': [args.surface_space, args.volume_space],
     'resample': [args.surface_resample,args.volume_resample],
     'prep':args.prep
-    }   
+    }
     if args.dataset.lower() in ["budapest", "raiders"]:
         dset=nb.datasets.datasets[args.dataset.lower()](fp_version="20.2.7",**kwargs)
     elif args.dataset.lower() in nb.datasets.datasets.keys():
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     else:
         raise ValueError("Unsupported zscore_axis")
 
-    os.makedirs(args.outdir, exist_ok=True)    
+    os.makedirs(args.outdir, exist_ok=True)
 
     # Begin computation
     # Make seed ts
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         else:
             tpl_suffix = '.npy'
         # import template, we'll fix the template naming part later!
-        if len(args.targets) == 1: 
+        if len(args.targets) == 1:
             if args.targets[0] == 'response':
                 tpl_fn = glob(os.path.join(args.template_dir,f'*targets_response_{roi.replace("_subj","")}{tpl_suffix}'))
             elif args.targets[0] == 'onavg-ico8':
@@ -162,7 +162,7 @@ if __name__ == "__main__":
                 calpha = cronbach_alpha(dm_allruns,rep_axis=0,var_axis=1)
             else:
                 calpha = None
-            
+
             if args.alignfunc == 'ridgeCV':
                 assert len(args.run)>1, "Need more than more run for leave-one-run-out cross validation"
                 avg_mse_train = np.zeros((len(args.ridge_alpha)))
@@ -173,13 +173,13 @@ if __name__ == "__main__":
                         func = functools.partial(searchlight_hyperalignment,sls=sls,mat0=mat0,sl_func = func,weights=weights)
                     avg_mse_train[ii],avg_mse_val[ii] = loo_cv(dm_allruns, tpl, func, voxel_reliability_scores=calpha)
                     best_idx = np.argmin(avg_mse_val)
-                    best_alpha = args.ridge_alpha[best_idx] 
+                    best_alpha = args.ridge_alpha[best_idx]
             elif args.alignfunc=='ridge':
-                assert not isinstance(args.ridge_alpha,list), "not using cross validation, cannot have multiple ridge alphas"  
+                assert not isinstance(args.ridge_alpha,list), "not using cross validation, cannot have multiple ridge alphas"
                 best_alpha = args.ridge_alpha
             else:
                 best_alpha=None
-                
+
             func = get_hyperalignment_func(args.alignfunc,best_alpha)
 
             X = np.mean(dm_allruns,axis=0) # for the final R we use the average of all training runs
@@ -192,6 +192,5 @@ if __name__ == "__main__":
                 xfm_final = reliability_weighting_hyperalignment(
                         X, tpl, func, calpha
                     )
-            
+
             nb.save(out_fn,xfm_final)
-                
