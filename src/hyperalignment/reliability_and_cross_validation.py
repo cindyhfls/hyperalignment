@@ -107,29 +107,68 @@ def evaluate_transformation(X_val, Y_val, xfm):
         'correlation': correlation
     }
 
-def loo_cv(X, Y, func,voxel_reliability_scores=None):
+def loo_cv(X, Y, func, voxel_reliability_scores=None):
     """
-    Leave one run out cross-validation
-    X : array (nruns, nT, nV)
-    Y : array to align to (nT,nV)
-    func: the function, ridge or procrustes used to align the data
-    reliability: reliability [0-1] to be used for weighting
+    Leave one run out cross-validation.
+    Exactly one of X or Y must be 3D (nruns, nT, nV); the other is the 2D template (nT, nV).
+    func: callable(data_avg, template) -> transform
     """
-    nruns = X.shape[0]
+    X = np.asarray(X)
+    Y = np.asarray(Y)
+    if X.ndim == 3 and Y.ndim == 2:
+        data, template = X, Y
+    elif Y.ndim == 3 and X.ndim == 2:
+        data, template = Y, X
+    else:
+        raise ValueError(
+            f"Exactly one of X, Y must be 3D (nruns, nT, nV); got X.ndim={X.ndim}, Y.ndim={Y.ndim}"
+        )
+
+    nruns = data.shape[0]
     mse_train_all = []
     mse_val_all   = []
 
     for i in range(nruns):
-        X_val = X[i]
+        data_val = data[i]
         idx = np.arange(nruns) != i
-        X_train = np.mean(X[idx], axis=0)
-        R = reliability_weighting_hyperalignment(X_train, Y, func, voxel_reliability_scores=voxel_reliability_scores,threshold=None)
-
-        mt = evaluate_transformation(X_train, Y, R)
-        mv = evaluate_transformation(X_val, Y, R)
+        data_train = np.mean(data[idx], axis=0)
+        R = reliability_weighting_hyperalignment(data_train, template, func,
+                                                 voxel_reliability_scores=voxel_reliability_scores,
+                                                 threshold=None)
+        mt = evaluate_transformation(data_train, template, R)
+        mv = evaluate_transformation(data_val, template, R)
 
         mse_train_all.append(mt['mse'])
         mse_val_all.append(mv['mse'])
 
-    # average across LOO folds
     return np.mean(mse_train_all), np.mean(mse_val_all)
+
+
+def ridgecv_hyperalignment(X, Y, alpha_grid, make_func, voxel_reliability_scores=None):
+    """
+    Ridge hyperalignment with leave-one-run-out cross-validation over alpha.
+    Exactly one of X or Y must be 3D (nruns, nT, nV); the other is the 2D template.
+
+    alpha_grid : list of alpha values to search over
+    make_func  : callable(alpha) -> func
+                 Factory that returns the alignment function for a given alpha.
+                 Should capture any searchlight infrastructure (sls, mat0, weights,
+                 n_jobs, etc.) in its closure.
+
+    Returns: (xfm, best_alpha)
+    """
+    mse_val = np.zeros(len(alpha_grid))
+    for ii, alpha in enumerate(alpha_grid):
+        _, mse_val[ii] = loo_cv(X, Y, make_func(alpha), voxel_reliability_scores)
+    best_alpha = alpha_grid[np.argmin(mse_val)]
+
+    X = np.asarray(X)
+    Y = np.asarray(Y)
+    if X.ndim == 3:
+        data, template = X, Y
+    else:
+        data, template = Y, X
+    data_avg = np.mean(data, axis=0)
+    xfm = reliability_weighting_hyperalignment(data_avg, template, make_func(best_alpha),
+                                               voxel_reliability_scores)
+    return xfm, best_alpha
